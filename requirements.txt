@@ -1,0 +1,24 @@
+# Backend Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# Template Engine (for server-side rendering if needed)
+jinja2==3.1.2
+python-multipart==0.0.6
+
+# CORS is handled by FastAPI's built-in CORSMiddleware (no extra package needed)
+
+# Database (optional - uncomment if needed)
+# sqlalchemy==2.0.23
+# sqlite3 (built-in, no install needed)
+
+# Environment variables
+python-dotenv==1.0.0
+
+# HTTP requests (if backend needs to call external APIs)
+httpx==0.25.2
+
+# Data validation and serialization
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
