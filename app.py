@@ -431,18 +431,22 @@ def analyze_paper_search():
             # Extract nested idea fields
             idea = idea_data.get('idea', {})
 
-            # Flatten the structure
+            # Flatten the structure and round scores to 1 decimal place
+            papers = idea_data.get('papers', [])
+            print(f"DEBUG: Idea '{idea.get('title', 'N/A')}' has {len(papers)} papers")
+
             flattened_idea = {
                 'title': idea.get('title', ''),
                 'description': idea.get('description', ''),
                 'rationale': idea.get('rationale', ''),
-                'novelty_score': idea_data.get('novelty_assessment', {}).get('novelty_score'),
-                'doability_score': idea_data.get('doability_assessment', {}).get('doability_score'),
-                'topic_match_score': idea_data.get('topic_match_score'),
-                'composite_score': idea_data.get('composite_score'),
+                'novelty_score': round(idea_data.get('novelty_assessment', {}).get('novelty_score', 0), 1),
+                'doability_score': round(idea_data.get('doability_assessment', {}).get('doability_score', 0), 1),
+                'topic_match_score': round(idea_data.get('topic_match_score', 0), 1),
+                'composite_score': round(idea_data.get('composite_score', 0), 1),
                 'novelty_assessment': idea_data.get('novelty_assessment', {}),
                 'doability_assessment': idea_data.get('doability_assessment', {}),
-                'literature_synthesis': idea_data.get('literature_synthesis', {})
+                'literature_synthesis': idea_data.get('literature_synthesis', {}),
+                'references': papers[:8]  # Include top 8 papers as references
             }
             flattened_ideas.append(flattened_idea)
 
