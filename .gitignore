@@ -42,3 +42,12 @@ coverage/
 .cache/
 tmp/
 temp/
+
+# Database
+*.db
+research_discovery.db
+alembic/versions/*.py
+
+# Application data
+uploads/
+results/
