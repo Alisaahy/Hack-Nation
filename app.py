@@ -13,6 +13,7 @@ from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 
 from utils.pdf_parser import extract_text_from_pdf
+from utils.scholar_scraper import scrape_scholar_profile
 from agents.reader import ReaderAgent
 from agents.searcher import SearcherAgent
 from agents.profiler import ProfilerAgent
@@ -112,9 +113,24 @@ def create_user_profile():
             # Store URL
             user.google_scholar_url = scholar_url
 
-            # TODO: Implement scholar scraping
-            # For now, return error
-            return jsonify({'error': 'Google Scholar import not yet implemented. Please use manual method.'}), 501
+            try:
+                # Scrape Google Scholar profile
+                scholar_data = scrape_scholar_profile(scholar_url)
+                
+                # Store scraped data
+                user.google_scholar_data = scholar_data
+                
+                # Analyze scholar data and create profile
+                profile = profiler.analyze_scholar_data(scholar_data)
+                user.profile = profile
+                
+            except ValueError as e:
+                # Handle scraping errors
+                return jsonify({'error': f'Failed to import Google Scholar profile: {str(e)}'}), 400
+            except Exception as e:
+                # Handle other errors
+                print(f"Error processing Google Scholar profile: {e}")
+                return jsonify({'error': f'An error occurred while processing Google Scholar profile: {str(e)}'}), 500
 
         else:
             return jsonify({'error': 'Invalid method. Use "manual" or "scholar"'}), 400

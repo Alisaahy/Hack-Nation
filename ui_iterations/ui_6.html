@@ -1436,23 +1436,29 @@
             console.log('Matched User Topics:', data.matched_user_topics);
             console.log('===================================');
 
-            // Summary - display as bullet points with dash prefix
+            // Summary - display as bullet points with round dot
             const summaryDiv = document.getElementById('paper-summary');
             const summaryItems = data.summary || [];
             if (summaryItems.length > 0) {
                 summaryDiv.innerHTML = summaryItems.map(item =>
-                    `<div style="margin-bottom: 8px;">– ${item}</div>`
+                    `<div style="margin-bottom: 8px; display: flex; align-items: flex-start;">
+                        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #065f46; margin-right: 12px; margin-top: 6px; flex-shrink: 0;"></span>
+                        <span style="flex: 1;">${item}</span>
+                    </div>`
                 ).join('');
             } else {
                 summaryDiv.textContent = 'No summary available';
             }
 
-            // Methodology - display as bullet points with dash prefix
+            // Methodology - display as bullet points with round dot
             const methodologyDiv = document.getElementById('paper-methodology');
             const methodologyItems = data.methodology || [];
             if (methodologyItems.length > 0) {
                 methodologyDiv.innerHTML = methodologyItems.map(item =>
-                    `<div style="margin-bottom: 8px;">– ${item}</div>`
+                    `<div style="margin-bottom: 8px; display: flex; align-items: flex-start;">
+                        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #065f46; margin-right: 12px; margin-top: 6px; flex-shrink: 0;"></span>
+                        <span style="flex: 1;">${item}</span>
+                    </div>`
                 ).join('');
             } else {
                 methodologyDiv.textContent = 'No methodology information available';

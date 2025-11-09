@@ -11,6 +11,12 @@ pypdf2==3.0.1
 # HTTP requests
 requests==2.31.0
 
+# Google Scholar scraping
+scholarly==1.7.9
+
+# HTML parsing
+beautifulsoup4==4.12.2
+
 # Environment variables
 python-dotenv==1.0.0
 

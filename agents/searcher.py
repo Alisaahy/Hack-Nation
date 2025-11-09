@@ -7,6 +7,8 @@ import os
 import json
 import time
 import requests
+import xml.etree.ElementTree as ET
+from urllib.parse import quote
 import google.generativeai as genai
 
 
@@ -14,8 +16,8 @@ class SearcherAgent:
     def __init__(self):
         """Initialize Searcher Agent"""
         genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
-        self.model = genai.GenerativeModel('gemini-2.5-flash')
-        self.semantic_scholar_api = "https://api.semanticscholar.org/graph/v1"
+        self.model = genai.GenerativeModel('gemini-2.5-pro')
+        self.arxiv_api = "http://export.arxiv.org/api/query"
 
     def research_ideas(self, ideas, user_topics):
         """
@@ -86,68 +88,93 @@ class SearcherAgent:
 
     def _search_papers(self, idea, limit=20, max_retries=3):
         """
-        Search for related papers using Semantic Scholar API with retry logic
+        Search for related papers using arXiv API
 
         Returns:
             List of paper dictionaries
         """
-        # Construct search query
-        query = f"{idea['title']} {idea.get('description', '')[:100]}"
+        # Construct search query from idea title and description
+        search_terms = f"{idea['title']} {idea.get('description', '')[:100]}"
+
+        # Clean and prepare query for arXiv
+        query = quote(search_terms)
 
         for attempt in range(max_retries):
             try:
-                # Search Semantic Scholar
-                url = f"{self.semantic_scholar_api}/paper/search"
-                params = {
-                    'query': query,
-                    'limit': limit,
-                    'fields': 'title,abstract,year,citationCount,authors,url'
-                }
+                # Query arXiv API
+                url = f"{self.arxiv_api}?search_query=all:{query}&start=0&max_results={limit}&sortBy=relevance&sortOrder=descending"
 
-                response = requests.get(url, params=params, timeout=10)
-
-                # Handle rate limiting with exponential backoff
-                if response.status_code == 429:
-                    wait_time = (2 ** attempt) * 2  # 2s, 4s, 8s
-                    print(f"Rate limited (429). Retrying in {wait_time}s... (attempt {attempt + 1}/{max_retries})")
-                    time.sleep(wait_time)
-                    continue
-
+                print(f"Searching arXiv for: {idea['title'][:50]}...")
+                response = requests.get(url, timeout=15)
                 response.raise_for_status()
 
-                data = response.json()
-                papers = data.get('data', [])
+                # Parse XML response
+                root = ET.fromstring(response.content)
 
-                # Filter and format papers
+                # Define namespaces
+                namespaces = {
+                    'atom': 'http://www.w3.org/2005/Atom',
+                    'arxiv': 'http://arxiv.org/schemas/atom'
+                }
+
+                # Extract papers
                 formatted_papers = []
-                for paper in papers:
-                    if paper.get('abstract'):
+                entries = root.findall('atom:entry', namespaces)
+
+                for entry in entries:
+                    # Extract basic info
+                    title = entry.find('atom:title', namespaces)
+                    summary = entry.find('atom:summary', namespaces)
+                    published = entry.find('atom:published', namespaces)
+                    link = entry.find('atom:id', namespaces)
+
+                    # Extract authors
+                    authors = []
+                    for author in entry.findall('atom:author', namespaces)[:3]:
+                        name = author.find('atom:name', namespaces)
+                        if name is not None:
+                            authors.append(name.text)
+
+                    # Only include if we have title and abstract
+                    if title is not None and summary is not None:
+                        # Extract year from published date (format: YYYY-MM-DD)
+                        year = None
+                        if published is not None:
+                            try:
+                                year = int(published.text[:4])
+                            except:
+                                year = None
+
                         formatted_papers.append({
-                            'title': paper.get('title', ''),
-                            'abstract': paper.get('abstract', ''),
-                            'year': paper.get('year'),
-                            'citations': paper.get('citationCount', 0),
-                            'authors': [a.get('name', '') for a in paper.get('authors', [])[:3]],
-                            'url': paper.get('url', '')
+                            'title': title.text.strip().replace('\n', ' '),
+                            'abstract': summary.text.strip().replace('\n', ' ')[:500],  # Limit abstract length
+                            'year': year,
+                            'citations': 0,  # arXiv doesn't provide citation counts
+                            'authors': authors,
+                            'url': link.text if link is not None else ''
                         })
 
-                print(f"Successfully fetched {len(formatted_papers)} papers for: {idea['title'][:50]}")
+                print(f"Successfully fetched {len(formatted_papers)} papers from arXiv for: {idea['title'][:50]}")
+
+                # arXiv requests a 3 second delay between requests
+                time.sleep(3)
+
                 return formatted_papers
 
-            except requests.exceptions.HTTPError as e:
-                if e.response.status_code == 429 and attempt < max_retries - 1:
-                    wait_time = (2 ** attempt) * 2
-                    print(f"Rate limited (429). Retrying in {wait_time}s... (attempt {attempt + 1}/{max_retries})")
+            except requests.exceptions.RequestException as e:
+                print(f"Error fetching from arXiv (attempt {attempt + 1}/{max_retries}): {e}")
+                if attempt < max_retries - 1:
+                    wait_time = 3
+                    print(f"Retrying in {wait_time}s...")
                     time.sleep(wait_time)
                     continue
                 else:
-                    print(f"Error searching papers: {e}")
+                    print(f"Failed to fetch papers after {max_retries} attempts")
                     return []
             except Exception as e:
-                print(f"Error searching papers: {e}")
+                print(f"Error parsing arXiv response: {e}")
                 return []
 
-        print(f"Failed to fetch papers after {max_retries} attempts (rate limited)")
         return []
 
     def _assess_novelty(self, idea, papers):
@@ -213,11 +240,19 @@ Return ONLY valid JSON:
         Returns:
             Dictionary with doability assessment
         """
+        # Include paper info if available
+        papers_context = ""
+        if papers and len(papers) > 0:
+            papers_context = f"\n\nRelated Research Papers:\n"
+            for i, paper in enumerate(papers[:3]):
+                papers_context += f"{i+1}. {paper['title']} ({paper['year']})\n"
+            papers_context += "\nConsider these papers when assessing methodology and resources."
+
         prompt = f"""Assess the feasibility and doability of this research idea.
 
 Research Idea:
 Title: {idea['title']}
-Description: {idea['description']}
+Description: {idea['description']}{papers_context}
 
 Based on the idea and typical research resources, assess:
 1. Data availability: Are datasets available or need to be collected? (Available/Partially/Need to Collect)
@@ -225,6 +260,8 @@ Based on the idea and typical research resources, assess:
 3. Estimated timeline: (3 months / 6 months / 1 year+)
 4. Required expertise: (Undergraduate / Masters / PhD level)
 5. Doability score: Rate 1-5 (1=very difficult, 5=highly doable)
+   - Consider: data availability, methodology complexity, timeline, and expertise needed
+   - Give VARIED scores (not all 3) - differentiate based on the specific challenges of THIS idea
 
 Return ONLY valid JSON:
 {{
@@ -245,6 +282,7 @@ Return ONLY valid JSON:
                 content = content[json_start:json_end]
 
             assessment = json.loads(content)
+            print(f"Doability assessment for '{idea['title']}': {assessment.get('doability_score', 'N/A')}")
             return assessment
 
         except Exception as e:
@@ -260,6 +298,7 @@ Return ONLY valid JSON:
     def _calculate_topic_match(self, idea, user_topics):
         """
         Calculate how well idea matches user's selected topics
+        Uses semantic matching of idea content with user topics
 
         Returns:
             Score from 0-5
@@ -267,20 +306,32 @@ Return ONLY valid JSON:
         if not user_topics:
             return 3  # Neutral score if no topics
 
-        idea_tags = [tag.lower() for tag in idea.get('topic_tags', [])]
+        # Combine idea title and description for matching
+        idea_text = f"{idea.get('title', '')} {idea.get('description', '')}".lower()
         user_topics_lower = [topic.lower() for topic in user_topics]
 
-        # Count matches
-        matches = sum(1 for tag in idea_tags if any(topic in tag or tag in topic for topic in user_topics_lower))
+        # Count how many user topics appear in the idea text
+        matches = 0
+        for topic in user_topics_lower:
+            # Split topic into keywords for better matching
+            topic_words = topic.split()
+            # Check if any word from the topic appears in the idea
+            if any(word in idea_text for word in topic_words if len(word) > 3):
+                matches += 1
 
-        # Score based on match ratio
-        if not idea_tags:
+        # Score based on match ratio (0 to 5 scale)
+        if not user_topics_lower:
             return 2.5
 
-        match_ratio = matches / max(len(user_topics), 1)
-        score = min(match_ratio * 5, 5)
+        match_ratio = matches / len(user_topics_lower)
 
-        return score
+        # Convert to 1-5 scale with variation
+        # 0 matches = 1.5, all matches = 5.0
+        score = 1.5 + (match_ratio * 3.5)
+
+        print(f"Topic match for '{idea.get('title', 'N/A')}': {matches}/{len(user_topics_lower)} topics matched, score={score:.1f}")
+
+        return round(score, 1)
 
     def _select_diverse_top_3(self, scored_ideas):
         """
