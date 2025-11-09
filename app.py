@@ -45,7 +45,7 @@ def allowed_file(filename):
 @app.route('/')
 def index():
     """Serve the main HTML page"""
-    return send_from_directory('.', 'index.html')
+    return send_from_directory('ui_iterations', 'ui_6.html')
 
 
 @app.route('/test.html')
