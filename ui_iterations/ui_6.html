@@ -1,0 +1,1817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Research Trailhead</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'sage': {
+                            50: '#f6f7f6',
+                            100: '#e3e7e2',
+                            200: '#c7cfc5',
+                            300: '#a4b0a1',
+                            400: '#8B9D83',
+                            500: '#6d7d68',
+                            600: '#596554',
+                            700: '#495244',
+                            800: '#3d4439',
+                            900: '#343a31'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #FFFFFF;
+            color: #111827;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Landing Section - Parallax scrolling */
+        .landing-section {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .landing-background {
+            position: absolute;
+            top: -50%;
+            left: 0;
+            right: 0;
+            height: 200%;
+            background-image: url('trailhead_img.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            will-change: transform;
+            transform: translateZ(0);
+            opacity: 0.2;
+        }
+
+        .landing-overlay {
+            position: relative;
+            background: linear-gradient(0deg, rgba(255,255,255,0.15), rgba(255,255,255,0.15));
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            z-index: 1;
+        }
+
+        .landing-header {
+            width: 100%;
+            border-b: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .landing-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* Scroll Indicator */
+        .scroll-indicator {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            color: rgba(16, 185, 129, 0.7);
+            font-size: 14px;
+            font-weight: 600;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(-10px); }
+        }
+
+        .scroll-arrow {
+            width: 24px;
+            height: 24px;
+            border-right: 2px solid rgba(16, 185, 129, 0.7);
+            border-bottom: 2px solid rgba(16, 185, 129, 0.7);
+            transform: rotate(45deg);
+        }
+
+        /* Progress Bar - Left Side */
+        .progress-bar {
+            position: fixed;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 160px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 32px 16px;
+            z-index: 10;
+            opacity: 0.02;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+            max-height: calc(100vh - 40px);
+        }
+
+        .progress-bar.visible {
+            pointer-events: auto;
+        }
+
+        .progress-steps {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 80px;
+        }
+
+        .progress-step {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            position: relative;
+            width: 100%;
+            gap: 12px;
+            min-height: 24px;
+        }
+
+        .progress-line {
+            position: absolute;
+            left: 5px;
+            top: 22px;
+            width: 2px;
+            height: 80px;
+            background: rgba(139, 157, 131, 0.08);
+            z-index: 0;
+            transition: background 0.3s ease;
+        }
+
+        .progress-step:last-child .progress-line {
+            display: none;
+        }
+
+        .progress-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(139, 157, 131, 0.1);
+            border: 2px solid rgba(139, 157, 131, 0.15);
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 2;
+            flex-shrink: 0;
+        }
+
+        .progress-step.active .progress-dot {
+            background: rgba(139, 157, 131, 0.9);
+            border-color: rgba(139, 157, 131, 1);
+            border-width: 3px;
+            width: 16px;
+            height: 16px;
+            box-shadow: 0 0 0 3px rgba(139, 157, 131, 0.2);
+        }
+
+        .progress-step.completed .progress-dot {
+            background: rgba(139, 157, 131, 0.5);
+            border-color: rgba(139, 157, 131, 0.6);
+        }
+
+        .progress-label {
+            font-size: 12px;
+            color: rgba(139, 157, 131, 0.25);
+            font-weight: 400;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            position: relative;
+            z-index: 1;
+        }
+
+        .progress-step.active .progress-label {
+            color: rgba(139, 157, 131, 0.95);
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .progress-step.completed .progress-label {
+            color: rgba(139, 157, 131, 0.4);
+        }
+
+        /* Main Content - Workflow Sections */
+        .workflow-container {
+            position: relative;
+            background: #FFFFFF;
+            min-height: 100vh;
+        }
+
+        .workflow-wrapper {
+            display: flex;
+            min-height: 100vh;
+            padding-top: 80px; /* Add spacing between landing page and workflow */
+        }
+
+        .main-content {
+            margin-left: 160px;
+            flex: 1;
+        }
+
+        .main-content.no-progress {
+            margin-left: 0;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 32px 16px;
+        }
+
+        /* Add extra top padding for section-1 when progress bar is not visible */
+        .main-content.no-progress .container {
+            padding-top: 80px;
+        }
+
+        /* Header styles - centered and bold */
+        header {
+            text-align: center;
+            margin-bottom: 48px;
+            padding-top: 32px;
+        }
+
+        header h1 {
+            font-size: 48px;
+            line-height: 56px;
+            font-weight: 900;
+            margin-bottom: 16px;
+            color: #111827;
+        }
+
+        header p {
+            font-size: 18px;
+            line-height: 32px;
+            font-weight: 600;
+            color: #6B7280;
+        }
+
+        .section {
+            background: #FFFFFF;
+            border: 2px solid #8B9D83;
+            border-radius: 8px;
+            padding: 32px;
+            margin-bottom: 32px;
+            box-shadow: 0 1px 3px rgba(139, 157, 131, 0.1);
+            transition: opacity 0.4s ease, max-height 0.4s ease;
+            scroll-margin-top: 32px;
+        }
+
+        .section.hidden {
+            display: none;
+        }
+
+        .section h2 {
+            font-size: 24px;
+            line-height: 32px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            color: #111827;
+        }
+
+        .btn {
+            width: 100%;
+            height: 48px;
+            background: #8B9D83;
+            color: #FFFFFF;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: #6d7d68;
+        }
+
+        .btn:disabled {
+            background: #c7cfc5;
+            color: #596554;
+            cursor: not-allowed;
+        }
+
+        .input,
+        .select,
+        .textarea {
+            width: 100%;
+            background: #FFFFFF;
+            border: 1px solid #8B9D83;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 16px;
+            line-height: 24px;
+            transition: border 0.2s ease;
+        }
+
+        .input:focus,
+        .select:focus,
+        .textarea:focus {
+            outline: none;
+            border: 2px solid #6d7d68;
+            padding: 11px 15px;
+        }
+
+        .textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .label {
+            display: block;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #111827;
+        }
+
+        .field {
+            margin-bottom: 24px;
+        }
+
+        .card-result {
+            background: #f6f7f6;
+            border: 1px solid #c7cfc5;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #e3e7e2;
+            color: #343a31;
+            border: 1px solid #8B9D83;
+            border-radius: 4px;
+            padding: 4px 12px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+
+        .topic-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #F9FAFB;
+            color: #343a31;
+            border: 2px solid #D1D5DB;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .topic-badge:hover {
+            background: #F3F4F6;
+            border-color: #8B9D83;
+        }
+
+        .topic-badge.selected {
+            background: #e3e7e2;
+            border-color: #8B9D83;
+            color: #111827;
+        }
+
+        .topic-badge .checkbox-icon {
+            width: 16px;
+            height: 16px;
+            min-height: 16px;
+            border: 2px solid #8B9D83;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            line-height: 16px;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .topic-badge.selected .checkbox-icon {
+            background: #8B9D83;
+            color: white;
+        }
+
+        .idea-checkbox-container {
+            display: flex;
+            align-items: start;
+            gap: 12px;
+            background: #F9FAFB;
+            border: 1px solid #D1D5DB;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .idea-checkbox-container:hover {
+            background: #F3F4F6;
+            border-color: #8B9D83;
+        }
+
+        .idea-checkbox-container.selected {
+            background: #e3e7e2;
+            border-color: #8B9D83;
+            border-width: 2px;
+            padding: 15px;
+        }
+
+        .checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #8B9D83;
+            border-radius: 4px;
+            cursor: pointer;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #D1D5DB;
+            border-top-color: #8B9D83;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .alert {
+            background: #F3F4F6;
+            border: 1px solid #6B7280;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .text-sm {
+            font-size: 14px;
+            line-height: 24px;
+        }
+
+        .text-xs {
+            font-size: 12px;
+            line-height: 16px;
+        }
+
+        .mono {
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .final-idea-card {
+            background: #FFFFFF;
+            border: 2px solid #8B9D83;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 4px rgba(139, 157, 131, 0.15);
+        }
+
+        .score-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin: 16px 0;
+        }
+
+        .score-box {
+            background: #F9FAFB;
+            border: 1px solid #D1D5DB;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .score-label {
+            font-size: 12px;
+            color: #6B7280;
+            margin-bottom: 4px;
+        }
+
+        .score-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #8B9D83;
+        }
+
+        .rank-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: #8B9D83;
+            color: #FFFFFF;
+            border-radius: 50%;
+            font-weight: 700;
+            font-size: 20px;
+            margin-right: 16px;
+        }
+
+        .reference-item {
+            background: #F9FAFB;
+            border-left: 3px solid #8B9D83;
+            padding: 12px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            line-height: 18px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .reference-item:hover {
+            background: #F3F4F6;
+            border-left-color: #6d7d68;
+            transform: translateX(4px);
+        }
+
+        .reference-item a:hover div:first-child {
+            color: #8B9D83 !important;
+        }
+
+        /* Mind Map Styles */
+        .mind-map-container {
+            width: 100%;
+            background: #FAFBFA;
+            border-radius: 8px;
+            padding: 40px 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 32px;
+        }
+
+        .mind-map-center {
+            background: #8B9D83;
+            color: white;
+            padding: 24px 40px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 18px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(139, 157, 131, 0.3);
+            max-width: 400px;
+        }
+
+        .mind-map-branches {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .mind-map-node {
+            background: white;
+            border: 2px solid #8B9D83;
+            color: #111827;
+            padding: 16px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: all 0.2s ease;
+            cursor: default;
+        }
+
+        .mind-map-node:hover {
+            background: #F3F4F6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 157, 131, 0.2);
+        }
+
+        .mind-map-node-user-topic {
+            background: #E8EDE7;
+            border: 2px solid #6d7d68;
+        }
+
+        .mind-map-node-user-topic:hover {
+            background: #dce2da;
+        }
+
+        .mind-map-legend {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: #6B7280;
+        }
+
+        .mind-map-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mind-map-legend-box {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            border: 2px solid #8B9D83;
+        }
+
+        .mind-map-legend-box.paper {
+            background: white;
+        }
+
+        .mind-map-legend-box.user {
+            background: #E8EDE7;
+            border-color: #6d7d68;
+        }
+
+        .concept-source-badge {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-top: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-paper {
+            background: #F3F4F6;
+            color: #6B7280;
+        }
+
+        .badge-user {
+            background: #6d7d68;
+            color: white;
+        }
+
+        /* Encouraging Quote Wrapper - Matches landing page container structure */
+        .encouraging-quote-wrapper {
+            max-width: 1280px;
+            margin: 48px auto;
+            padding: 0 24px; /* Matches landing page px-6 (24px) */
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Encouraging Quote Style - Aligned with landing page heading */
+        .encouraging-quote {
+            text-align: left;
+            padding: 0;
+            margin: 0;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 1280px) {
+            .encouraging-quote-wrapper {
+                padding: 0 24px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .encouraging-quote-wrapper {
+                padding: 0 16px;
+            }
+            .encouraging-quote p {
+                font-size: 20px;
+                line-height: 32px;
+            }
+        }
+
+        .encouraging-quote p {
+            font-size: 26px;
+            line-height: 40px;
+            font-weight: 700;
+            color: #111827;
+            margin: 0;
+            padding: 32px 32px 32px 40px;
+            border-left: 6px solid #10B981;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.04) 0%, rgba(16, 185, 129, 0.015) 100%);
+            border-radius: 0 12px 12px 0;
+            letter-spacing: -0.025em;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08);
+        }
+    </style>
+</head>
+<body>
+    <!-- Landing Section - Parallax -->
+    <section class="landing-section" id="landing-section">
+        <div class="landing-background"></div>
+        <div class="landing-overlay">
+            <!-- Minimal top header -->
+            <header class="landing-header">
+                <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+                    <a href="#" class="flex items-center gap-2">
+                        <svg class="h-8 w-8 text-emerald-600" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M8 52h48L40 10 32 28 24 18 8 52Z" fill="currentColor" />
+                            <circle cx="12" cy="52" r="3" class="fill-emerald-400" />
+                        </svg>
+                        <span class="text-lg font-semibold tracking-wide">Research Trailhead</span>
+                    </a>
+                </div>
+            </header>
+
+            <!-- Hero Content -->
+            <div class="landing-content">
+                <div class="max-w-7xl mx-auto px-6 py-20 sm:py-28">
+                    <div class="max-w-3xl">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-emerald-200 bg-white/70 text-sm text-emerald-700">
+                            <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                            Agentic AI for Research
+                        </div>
+                        <h1 class="mt-5 text-4xl sm:text-5xl font-extrabold leading-tight">
+                            Turn <span class="text-emerald-600">papers</span> into
+                            <span class="text-emerald-700">research opportunities</span>.
+                        </h1>
+                        <p class="mt-4 text-lg text-gray-700">Clear topics. Credible evidence. Ready for next steps.</p>
+                        <p class="mt-3 text-sm text-gray-700">Paper Overview → New Ideas → Research Opportunities. Your Agent marks the trail and surfaces concrete topics with references.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scroll Indicator -->
+            <div class="scroll-indicator">
+                <span>Scroll to begin</span>
+                <div class="scroll-arrow"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Workflow Container -->
+    <div class="workflow-container" id="workflow-container">
+        <!-- Progress Bar - Left Side (hidden initially) -->
+        <div class="progress-bar" id="progress-bar">
+            <div class="progress-steps">
+                <div class="progress-step active" id="progress-step-1">
+                    <div class="progress-dot"></div>
+                    <div class="progress-label">Profile</div>
+                    <div class="progress-line"></div>
+                </div>
+                <div class="progress-step" id="progress-step-2">
+                    <div class="progress-dot"></div>
+                    <div class="progress-label">Paper</div>
+                    <div class="progress-line"></div>
+                </div>
+                <div class="progress-step" id="progress-step-3">
+                    <div class="progress-dot"></div>
+                    <div class="progress-label">Ideas</div>
+                    <div class="progress-line"></div>
+                </div>
+                <div class="progress-step" id="progress-step-4">
+                    <div class="progress-dot"></div>
+                    <div class="progress-label">Research</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Workflow Wrapper -->
+        <div class="workflow-wrapper">
+            <!-- Main Content -->
+            <div class="main-content no-progress" id="main-content">
+                
+                
+                <div class="container">
+
+                    <!-- Step 1: User Profile -->
+                    <section id="section-1" class="section">
+                        <h2>Create Your Profile</h2>
+
+                        <div class="field">
+                            <label class="label">Profile Method</label>
+                            <select id="profile-method" class="select" onchange="toggleProfileMethod()">
+                                <option value="manual">Manual Description</option>
+                                <option value="scholar">Google Scholar URL</option>
+                            </select>
+                        </div>
+
+                        <div id="manual-section">
+                            <div class="field">
+                                <label class="label">Research Description</label>
+                                <textarea
+                                    id="profile-description"
+                                    class="textarea"
+                                    placeholder="Describe your research interests, background, and experience..."
+                                ></textarea>
+                            </div>
+
+                            <div class="field">
+                                <label class="label">Experience Level</label>
+                                <select id="experience-level" class="select">
+                                    <option value="" disabled selected>Select...</option>
+                                    <option value="Undergraduate Student">Undergraduate Student</option>
+                                    <option value="PhD Student">PhD Student</option>
+                                    <option value="Academia Researcher">Academia Researcher</option>
+                                    <option value="Industry Researcher">Industry Researcher</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="scholar-section" class="hidden">
+                            <div class="field">
+                                <label class="label">Google Scholar URL</label>
+                                <input
+                                    type="text"
+                                    id="scholar-url"
+                                    class="input"
+                                    placeholder="https://scholar.google.com/citations?user=..."
+                                >
+                            </div>
+                        </div>
+
+                        <button onclick="createProfile()" class="btn">Create Profile</button>
+                    </section>
+
+                    <!-- Step 2: Upload Paper (Hidden initially) -->
+                    <section id="section-2" class="section hidden">
+                        <h2>Upload Paper</h2>
+
+                        <div class="field">
+                            <label class="label">PDF File</label>
+                            <input
+                                type="file"
+                                id="pdf-file"
+                                accept=".pdf"
+                                class="input"
+                            >
+                        </div>
+
+                        <div class="field">
+                            <label class="label">Select Research Topics</label>
+                            <p class="text-xs" style="color: #6B7280; margin-bottom: 8px;">Click to select/deselect topics from your profile</p>
+                            <div id="auto-topics" style="min-height: 40px;">
+                                <span class="text-sm" style="color: #6B7280;">Topics will appear here after profile creation</span>
+                            </div>
+                            <div id="selected-count" style="margin-top: 8px; font-size: 14px; color: #8B9D83; font-weight: 600;"></div>
+                        </div>
+
+                        <div class="field">
+                            <label class="label">Additional Topics (Optional)</label>
+                            <input
+                                type="text"
+                                id="manual-topics"
+                                class="input"
+                                placeholder="Graph Neural Networks, Attention Mechanisms, ..."
+                            >
+                            <p class="text-xs" style="color: #6B7280; margin-top: 8px;">Comma-separated list of additional topics</p>
+                        </div>
+
+                        <button onclick="uploadAndAnalyze()" class="btn" id="upload-btn">Upload & Analyze</button>
+
+                        <div id="upload-status" class="alert hidden">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span class="loading"></span>
+                                <span id="status-text" class="text-sm" style="font-weight: 600;"></span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Step 3: Quick Read Results (Hidden initially) -->
+                    <section id="section-3" class="section hidden">
+                        <h2>Paper Review</h2>
+
+                        <div style="margin-bottom: 24px;">
+                            <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 12px;">Summary</h3>
+                            <div id="paper-summary" class="card-result text-sm"></div>
+                        </div>
+
+                        <div style="margin-bottom: 24px;">
+                            <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 12px;">Methodology</h3>
+                            <div id="paper-methodology" class="card-result text-sm"></div>
+                        </div>
+
+                        <div style="margin-bottom: 24px;">
+                            <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 12px;">Key Concepts</h3>
+                            <div id="concepts-list"></div>
+                        </div>
+
+                        <div style="margin-bottom: 24px;">
+                            <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 12px;">Research Ideas (Select 3)</h3>
+                            <div id="ideas-list"></div>
+                        </div>
+
+                        <button onclick="researchSelectedIdeas()" class="btn" id="research-btn" disabled>
+                            Research Selected Ideas
+                        </button>
+
+                        <div id="research-status" class="alert hidden">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span class="loading"></span>
+                                <span class="text-sm" style="font-weight: 600;">Deep research in progress...</span>
+                            </div>
+                            <p class="text-xs" style="color: #6B7280; margin-top: 8px;">This may up to 5 minutes</p>
+                        </div>
+                    </section>
+
+                    <!-- Step 4: Final Results (Hidden initially) -->
+                    <section id="section-4" class="section hidden">
+                        <h2>Final Ranked Ideas</h2>
+                        <div id="final-ideas-list"></div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let currentUserId = null;
+        let currentJobId = null;
+        let currentStep = 1;
+        let allIdeas = [];
+        let selectedIdeas = [];
+        let hasScrolledPastLanding = false;
+
+        // API base URL
+        const API_BASE = 'http://localhost:5001';
+
+        // Handle parallax and progress bar visibility
+        function initLandingScroll() {
+            const landingBackground = document.querySelector('.landing-background');
+            const progressBar = document.getElementById('progress-bar');
+            const mainContent = document.getElementById('main-content');
+            const landingSection = document.getElementById('landing-section');
+
+            function handleScroll() {
+                const scrollY = window.scrollY;
+                const windowHeight = window.innerHeight;
+                const landingHeight = landingSection.offsetHeight;
+                const section1 = document.getElementById('section-1');
+                
+                // Parallax effect: move background slower than scroll (smooth parallax)
+                if (landingBackground) {
+                    const parallaxSpeed = 0.5; // Background moves at 50% of scroll speed
+                    if (scrollY <= landingHeight) {
+                        // Calculate parallax offset - background moves up slower
+                        const parallaxOffset = scrollY * parallaxSpeed;
+                        landingBackground.style.transform = `translate3d(0, ${parallaxOffset}px, 0)`;
+                    } else {
+                        // Keep background at final position when past landing
+                        const maxOffset = landingHeight * parallaxSpeed;
+                        landingBackground.style.transform = `translate3d(0, ${maxOffset}px, 0)`;
+                    }
+                }
+                
+                // Calculate progress bar opacity based on scroll position
+                // Very transparent on landing page, gradually increase as user approaches section-1
+                let progressOpacity = 0.02; // Very transparent on landing page
+                let shouldShowProgress = false;
+                
+                // Check if we're still on the landing page
+                const isOnLandingPage = scrollY < landingHeight * 0.9; // Consider 90% of landing height as "on landing page"
+                
+                if (scrollY >= 50 && section1) {
+                    shouldShowProgress = true;
+                    
+                    if (isOnLandingPage) {
+                        // Still on landing page: keep very transparent
+                        progressOpacity = 0.02;
+                    } else {
+                        // Past landing page: calculate opacity based on distance to section-1
+                        const section1Rect = section1.getBoundingClientRect();
+                        const section1TopFromViewport = section1Rect.top;
+                        
+                        // Calculate opacity based on distance to section-1
+                        if (section1TopFromViewport > 0) {
+                            // Section-1 is still below viewport
+                            const fadeStartDistance = windowHeight * 0.3; // Start fading in when 30% of viewport away
+                            if (section1TopFromViewport > fadeStartDistance) {
+                                // Very far: stay at minimum opacity (but higher than landing page)
+                                progressOpacity = 0.15;
+                            } else {
+                                // Getting close: gradually increase opacity (0.15 to 0.9)
+                                const progress = 1 - (section1TopFromViewport / fadeStartDistance);
+                                progressOpacity = 0.15 + (progress * 0.75); // 0.15 to 0.9
+                            }
+                        } else {
+                            // Section-1 is in viewport or above: fully opaque
+                            progressOpacity = 1.0;
+                        }
+                    }
+                }
+                
+                // Apply opacity and visibility
+                if (shouldShowProgress) {
+                    if (!hasScrolledPastLanding) {
+                        hasScrolledPastLanding = true;
+                        progressBar.classList.add('visible');
+                        mainContent.classList.remove('no-progress');
+                    }
+                    progressBar.style.opacity = Math.min(Math.max(progressOpacity, 0.02), 1.0).toString();
+                } else {
+                    if (hasScrolledPastLanding && scrollY < 30) {
+                        hasScrolledPastLanding = false;
+                        progressBar.classList.remove('visible');
+                        mainContent.classList.add('no-progress');
+                        progressBar.style.opacity = '0.02'; // Very transparent when at top
+                    }
+                }
+            }
+
+            // Use requestAnimationFrame for smooth parallax
+            let ticking = false;
+            window.addEventListener('scroll', () => {
+                if (!ticking) {
+                    window.requestAnimationFrame(() => {
+                        handleScroll();
+                        ticking = false;
+                    });
+                    ticking = true;
+                }
+            }, { passive: true });
+            
+            handleScroll(); // Initial check
+        }
+
+        // Update progress bar
+        function updateProgressBar(step) {
+            for (let i = 1; i <= 4; i++) {
+                const stepElement = document.getElementById(`progress-step-${i}`);
+                const lineElement = stepElement.querySelector('.progress-line');
+                
+                stepElement.classList.remove('active', 'completed');
+                
+                if (i < step) {
+                    stepElement.classList.add('completed');
+                    // Make line more visible for completed steps
+                    if (lineElement) {
+                        lineElement.style.background = 'rgba(139, 157, 131, 0.3)';
+                    }
+                } else if (i === step) {
+                    stepElement.classList.add('active');
+                    // Make line leading to active step more visible
+                    if (lineElement) {
+                        lineElement.style.background = 'rgba(139, 157, 131, 0.4)';
+                    }
+                } else {
+                    // Inactive step - very transparent line
+                    if (lineElement) {
+                        lineElement.style.background = 'rgba(139, 157, 131, 0.08)';
+                    }
+                }
+            }
+        }
+
+        // Reveal next section with smooth scroll
+        function revealNextSection(sectionNumber) {
+            currentStep = sectionNumber;
+            updateProgressBar(sectionNumber);
+            
+            // Ensure progress bar is visible when navigating to sections
+            if (!hasScrolledPastLanding) {
+                hasScrolledPastLanding = true;
+                const progressBarElement = document.getElementById('progress-bar');
+                progressBarElement.classList.add('visible');
+                progressBarElement.style.opacity = '1.0'; // Fully opaque when navigating
+                document.getElementById('main-content').classList.remove('no-progress');
+            }
+            
+            const section = document.getElementById(`section-${sectionNumber}`);
+
+            if (section) {
+                section.classList.remove('hidden');
+                section.classList.add('fade-in');
+
+                setTimeout(() => {
+                    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    // Update progress bar after scroll completes
+                    setTimeout(() => {
+                        updateProgressBar(sectionNumber);
+                    }, 500);
+                }, 100);
+            }
+        }
+
+        // Toggle profile method
+        function toggleProfileMethod() {
+            const method = document.getElementById('profile-method').value;
+            const manualSection = document.getElementById('manual-section');
+            const scholarSection = document.getElementById('scholar-section');
+
+            if (method === 'manual') {
+                manualSection.classList.remove('hidden');
+                scholarSection.classList.add('hidden');
+            } else {
+                manualSection.classList.add('hidden');
+                scholarSection.classList.remove('hidden');
+            }
+        }
+
+        // Step 1: Create Profile
+        async function createProfile() {
+            const method = document.getElementById('profile-method').value;
+            let payload = { method };
+
+            if (method === 'manual') {
+                const description = document.getElementById('profile-description').value.trim();
+                const experienceLevel = document.getElementById('experience-level').value;
+
+                if (!description) {
+                    showError('Please enter a research description');
+                    return;
+                }
+
+                if (!experienceLevel) {
+                    showError('Please select your experience level');
+                    return;
+                }
+
+                payload.description = description;
+                payload.experience_level = experienceLevel;
+            } else {
+                const scholarUrl = document.getElementById('scholar-url').value.trim();
+                if (!scholarUrl) {
+                    showError('Please enter a Google Scholar URL');
+                    return;
+                }
+                payload.google_scholar_url = scholarUrl;
+            }
+
+            // Show loading state
+            const createBtn = document.querySelector('#section-1 .btn');
+            const originalBtnText = createBtn.textContent;
+            createBtn.disabled = true;
+            createBtn.innerHTML = '<span class="loading"></span> <span style="margin-left: 8px;">Creating Profile...</span>';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/users/profile`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    currentUserId = data.user_id;
+
+                    // Auto-generate topics from profile
+                    displayAutoTopics(data.profile);
+
+                    // Restore button
+                    createBtn.disabled = false;
+                    createBtn.textContent = originalBtnText;
+
+                    // Mark step 1 as completed and move to step 2
+                    updateProgressBar(2);
+                    revealNextSection(2);
+                } else {
+                    showError(data.error || 'Failed to create profile');
+                    createBtn.disabled = false;
+                    createBtn.textContent = originalBtnText;
+                }
+            } catch (error) {
+                showError(`Error: ${error.message}`);
+                createBtn.disabled = false;
+                createBtn.textContent = originalBtnText;
+            }
+        }
+
+        // Track selected topics
+        let selectedTopics = new Set();
+
+        // Helper function to capitalize first letter of every word
+        function capitalizeWords(str) {
+            return str.split(' ').map(word =>
+                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+            ).join(' ');
+        }
+
+        // Display auto-detected topics with checkboxes
+        function displayAutoTopics(profile) {
+            const autoTopicsDiv = document.getElementById('auto-topics');
+            autoTopicsDiv.innerHTML = '';
+
+            const topics = [
+                ...(profile.research_areas || []),
+                ...(profile.specific_topics || []).slice(0, 3)
+            ];
+
+            if (topics.length === 0) {
+                autoTopicsDiv.innerHTML = '<span class="text-sm" style="color: #6B7280;">No topics detected</span>';
+                return;
+            }
+
+            // Select all topics by default
+            selectedTopics = new Set(topics);
+
+            topics.forEach(topic => {
+                const badge = document.createElement('div');
+                badge.className = 'topic-badge selected';
+                badge.onclick = () => toggleTopicSelection(topic, badge);
+
+                badge.innerHTML = `
+                    <div class="checkbox-icon">✓</div>
+                    <span>${capitalizeWords(topic)}</span>
+                `;
+
+                autoTopicsDiv.appendChild(badge);
+            });
+
+            updateSelectedCount();
+        }
+
+        // Toggle topic selection
+        function toggleTopicSelection(topic, badgeElement) {
+            if (selectedTopics.has(topic)) {
+                selectedTopics.delete(topic);
+                badgeElement.classList.remove('selected');
+                badgeElement.querySelector('.checkbox-icon').innerHTML = '&nbsp;';
+            } else {
+                selectedTopics.add(topic);
+                badgeElement.classList.add('selected');
+                badgeElement.querySelector('.checkbox-icon').textContent = '✓';
+            }
+            updateSelectedCount();
+        }
+
+        // Update selected count display
+        function updateSelectedCount() {
+            const countDiv = document.getElementById('selected-count');
+            const count = selectedTopics.size;
+            if (count > 0) {
+                countDiv.textContent = `${count} topic${count !== 1 ? 's' : ''} selected`;
+            } else {
+                countDiv.textContent = '';
+            }
+        }
+
+        // Get all topics (selected auto topics + manual)
+        function getAllTopics() {
+            // Get selected topics from checkboxes
+            const autoTopics = Array.from(selectedTopics);
+
+            // Get manual topics from text input
+            const manualTopicsInput = document.getElementById('manual-topics').value;
+            const manualTopics = manualTopicsInput
+                ? manualTopicsInput.split(',').map(t => t.trim()).filter(t => t)
+                : [];
+
+            // Combine and deduplicate
+            return [...new Set([...autoTopics, ...manualTopics])];
+        }
+
+        // Step 2: Upload and Analyze
+        async function uploadAndAnalyze() {
+            const fileInput = document.getElementById('pdf-file');
+
+            if (!currentUserId) {
+                showError('Please create a profile first');
+                return;
+            }
+
+            if (!fileInput.files[0]) {
+                showError('Please select a PDF file');
+                return;
+            }
+
+            const topics = getAllTopics();
+            if (topics.length === 0) {
+                showError('No topics available. Please create a profile or add manual topics.');
+                return;
+            }
+
+            // Show loading state on button
+            const uploadBtn = document.getElementById('upload-btn');
+            const originalUploadBtnText = uploadBtn.textContent;
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<span class="loading"></span> <span style="margin-left: 8px;">Analyzing (This may take up to 2 minutes)</span>';
+
+            try {
+                // Upload PDF
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+                formData.append('user_id', currentUserId);
+
+                const uploadResponse = await fetch(`${API_BASE}/api/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const uploadData = await uploadResponse.json();
+
+                if (!uploadResponse.ok) {
+                    throw new Error(uploadData.error || 'Upload failed');
+                }
+
+                currentJobId = uploadData.job_id;
+
+                // Start quick read
+                const analyzeResponse = await fetch(`${API_BASE}/api/analyze/read`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        job_id: currentJobId,
+                        topics: topics
+                    })
+                });
+
+                const analyzeData = await analyzeResponse.json();
+
+                if (!analyzeResponse.ok) {
+                    throw new Error(analyzeData.error || 'Analysis failed');
+                }
+
+                // Display results
+                displayQuickReadResults(analyzeData);
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = originalUploadBtnText;
+
+                // Mark step 2 as completed and move to step 3
+                updateProgressBar(3);
+                revealNextSection(3);
+
+            } catch (error) {
+                showError(`Error: ${error.message}`);
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = originalUploadBtnText;
+            }
+        }
+
+        // Create Mind Map for Concepts
+        function createMindMap(container, concepts, matchedUserTopics = []) {
+            if (concepts.length === 0 && matchedUserTopics.length === 0) return;
+
+            // Create mind map container
+            const mapContainer = document.createElement('div');
+            mapContainer.className = 'mind-map-container';
+
+            // Row 1: Core Topic (first concept)
+            if (concepts.length > 0) {
+                const coreConcept = concepts[0];
+                const centerNode = document.createElement('div');
+                centerNode.className = 'mind-map-center';
+                centerNode.textContent = capitalizeWords(coreConcept);
+                mapContainer.appendChild(centerNode);
+            }
+
+            // Row 2: Paper Concepts (supporting concepts)
+            const supportingConcepts = concepts.slice(1);
+            if (supportingConcepts.length > 0) {
+                const branchesDiv = document.createElement('div');
+                branchesDiv.className = 'mind-map-branches';
+
+                supportingConcepts.forEach(concept => {
+                    const node = document.createElement('div');
+                    node.className = 'mind-map-node';
+                    node.textContent = capitalizeWords(concept);
+                    branchesDiv.appendChild(node);
+                });
+
+                mapContainer.appendChild(branchesDiv);
+            }
+
+            // Row 3: Topics You Might Be Interested In (matched user topics)
+            if (matchedUserTopics.length > 0) {
+                const userTopicsHeading = document.createElement('h4');
+                userTopicsHeading.style.cssText = 'font-size: 14px; font-weight: 600; color: #6B7280; margin: 24px 0 12px 0; text-align: center;';
+                userTopicsHeading.textContent = 'Topics You Might Be Interested In';
+                mapContainer.appendChild(userTopicsHeading);
+
+                const userTopicsDiv = document.createElement('div');
+                userTopicsDiv.className = 'mind-map-branches';
+
+                matchedUserTopics.forEach(topic => {
+                    const node = document.createElement('div');
+                    node.className = 'mind-map-node mind-map-node-user-topic';
+                    node.textContent = capitalizeWords(topic);
+                    userTopicsDiv.appendChild(node);
+                });
+
+                mapContainer.appendChild(userTopicsDiv);
+            }
+
+            container.appendChild(mapContainer);
+        }
+
+        // Display Quick Read Results
+        function displayQuickReadResults(data) {
+            console.log('=== DISPLAY QUICK READ RESULTS ===');
+            console.log('Summary:', data.summary);
+            console.log('Methodology:', data.methodology);
+            console.log('Matched User Topics:', data.matched_user_topics);
+            console.log('===================================');
+
+            // Summary - display as bullet points with dash prefix
+            const summaryDiv = document.getElementById('paper-summary');
+            const summaryItems = data.summary || [];
+            if (summaryItems.length > 0) {
+                summaryDiv.innerHTML = summaryItems.map(item =>
+                    `<div style="margin-bottom: 8px;">– ${item}</div>`
+                ).join('');
+            } else {
+                summaryDiv.textContent = 'No summary available';
+            }
+
+            // Methodology - display as bullet points with dash prefix
+            const methodologyDiv = document.getElementById('paper-methodology');
+            const methodologyItems = data.methodology || [];
+            if (methodologyItems.length > 0) {
+                methodologyDiv.innerHTML = methodologyItems.map(item =>
+                    `<div style="margin-bottom: 8px;">– ${item}</div>`
+                ).join('');
+            } else {
+                methodologyDiv.textContent = 'No methodology information available';
+            }
+
+            // Concepts - mind map display with user topics
+            const conceptsList = document.getElementById('concepts-list');
+            conceptsList.innerHTML = '';
+
+            const concepts = data.concepts || [];
+            const matchedUserTopics = data.matched_user_topics || [];
+
+            if (concepts.length > 0 || matchedUserTopics.length > 0) {
+                createMindMap(conceptsList, concepts, matchedUserTopics);
+            } else {
+                conceptsList.innerHTML = '<p class="text-sm" style="color: #6B7280;">No concepts identified</p>';
+            }
+
+            // Ideas
+            allIdeas = data.ideas || [];
+            const ideasList = document.getElementById('ideas-list');
+            ideasList.innerHTML = '';
+
+            allIdeas.forEach((idea, index) => {
+                const container = document.createElement('div');
+                container.className = 'idea-checkbox-container';
+                container.onclick = () => toggleIdeaSelection(index);
+
+                container.innerHTML = `
+                    <input type="checkbox" id="idea-${index}" class="checkbox" onclick="event.stopPropagation();" onchange="toggleIdeaSelection(${index})">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; margin-bottom: 8px;">${idea.title || `Idea ${index + 1}`}</div>
+                        <div class="text-sm" style="color: #374151;">${idea.description || ''}</div>
+                    </div>
+                `;
+
+                ideasList.appendChild(container);
+            });
+        }
+
+        // Toggle idea selection
+        function toggleIdeaSelection(index) {
+            const checkbox = document.getElementById(`idea-${index}`);
+            checkbox.checked = !checkbox.checked;
+
+            updateIdeaSelection();
+        }
+
+        // Update idea selection
+        function updateIdeaSelection() {
+            selectedIdeas = [];
+
+            allIdeas.forEach((idea, index) => {
+                const checkbox = document.getElementById(`idea-${index}`);
+                const container = checkbox.closest('.idea-checkbox-container');
+
+                if (checkbox.checked) {
+                    selectedIdeas.push(index);
+                    container.classList.add('selected');
+                } else {
+                    container.classList.remove('selected');
+                }
+            });
+
+            // Enforce 3-idea limit
+            if (selectedIdeas.length > 3) {
+                const lastIndex = selectedIdeas[selectedIdeas.length - 1];
+                const lastCheckbox = document.getElementById(`idea-${lastIndex}`);
+                lastCheckbox.checked = false;
+                lastCheckbox.closest('.idea-checkbox-container').classList.remove('selected');
+                selectedIdeas.pop();
+                showError('Please select exactly 3 ideas');
+            }
+
+            // Enable/disable research button
+            const researchBtn = document.getElementById('research-btn');
+            researchBtn.disabled = selectedIdeas.length !== 3;
+        }
+
+        // Research Selected Ideas
+        async function researchSelectedIdeas() {
+            if (selectedIdeas.length !== 3) {
+                showError('Please select exactly 3 ideas');
+                return;
+            }
+
+            // Show loading state on button
+            const researchBtn = document.getElementById('research-btn');
+            const originalResearchBtnText = researchBtn.textContent;
+            researchBtn.disabled = true;
+            researchBtn.innerHTML = '<span class="loading"></span> <span style="margin-left: 8px;">Researching (This may take up to 5 minutes)</span>';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/analyze/search`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        job_id: currentJobId,
+                        selected_ideas: selectedIdeas
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Research failed');
+                }
+
+                // Display final results
+                displayFinalResults(data.top_ideas);
+                researchBtn.disabled = false;
+                researchBtn.textContent = originalResearchBtnText;
+
+                // Mark step 3 as completed and move to step 4
+                updateProgressBar(4);
+                revealNextSection(4);
+
+            } catch (error) {
+                showError(`Error: ${error.message}`);
+                researchBtn.disabled = false;
+                researchBtn.textContent = originalResearchBtnText;
+            }
+        }
+
+        // Display Final Results
+        function displayFinalResults(topIdeas) {
+            console.log('=== FINAL IDEAS DATA ===');
+            console.log('Number of ideas:', topIdeas.length);
+            topIdeas.forEach((idea, idx) => {
+                console.log(`\nIdea ${idx + 1}:`, idea.title);
+                console.log('  - references:', idea.references?.length || 0);
+                console.log('  - literature_synthesis.papers:', idea.literature_synthesis?.papers?.length || 0);
+                console.log('  - Full idea object:', idea);
+            });
+            console.log('=======================');
+
+            const finalList = document.getElementById('final-ideas-list');
+            finalList.innerHTML = '';
+
+            topIdeas.forEach((idea, index) => {
+                const card = document.createElement('div');
+                card.className = 'final-idea-card fade-in';
+
+                const refs = idea.references || idea.literature_synthesis?.papers || [];
+                const refHtml = refs.length > 0
+                    ? refs.slice(0, 5).map(ref => `
+                        <div class="reference-item">
+                            <a href="${ref.url || '#'}" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: inherit;">
+                                <div style="font-weight: 600; margin-bottom: 4px; color: #111827; transition: color 0.2s ease;">
+                                    ${ref.title || 'No title'}
+                                </div>
+                                <div class="text-xs" style="color: #6B7280;">
+                                    ${ref.year || 'N/A'}${ref.authors && ref.authors.length > 0 ? ' • ' + ref.authors.slice(0, 3).join(', ') : ''}
+                                </div>
+                            </a>
+                        </div>
+                    `).join('')
+                    : '<p class="text-sm" style="color: #6B7280;">No references available</p>';
+
+                card.innerHTML = `
+                    <div style="display: flex; align-items: center; margin-bottom: 16px;">
+                        <span class="rank-badge">${index + 1}</span>
+                        <h3 style="margin: 0; flex: 1; font-size: 20px; font-weight: 700;">${idea.title}</h3>
+                        <div style="background: #8B9D83; color: #FFFFFF; padding: 8px 16px; border-radius: 8px; font-weight: 700;">
+                            ${(idea.composite_score * 2).toFixed(1)}/10
+                        </div>
+                    </div>
+
+                    <p class="text-sm" style="margin-bottom: 16px; color: #374151;">${idea.description}</p>
+
+                    <div class="score-grid">
+                        <div class="score-box">
+                            <div class="score-label">Novelty</div>
+                            <div class="score-value">${(idea.novelty_score * 2).toFixed(1)}/10</div>
+                            <div class="text-xs" style="color: #6B7280; margin-top: 8px; line-height: 1.4;">
+                                Based on gap analysis from ${idea.references?.length || 0} reference papers
+                            </div>
+                        </div>
+                        <div class="score-box">
+                            <div class="score-label">Doability</div>
+                            <div class="score-value">${(idea.doability_score * 2).toFixed(1)}/10</div>
+                            <div class="text-xs" style="color: #6B7280; margin-top: 8px; line-height: 1.4;">
+                                Based on methodology & resource analysis
+                            </div>
+                        </div>
+                        <div class="score-box">
+                            <div class="score-label">Topic Match</div>
+                            <div class="score-value">${(idea.topic_match_score * 2).toFixed(1)}/10</div>
+                            <div class="text-xs" style="color: #6B7280; margin-top: 8px; line-height: 1.4;">
+                                Alignment with your research profile
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-result" style="margin-bottom: 16px;">
+                        <div style="font-weight: 600; margin-bottom: 8px;">Rationale</div>
+                        <p class="text-sm">${idea.rationale || 'N/A'}</p>
+                    </div>
+
+                    <div>
+                        <div style="font-weight: 700; margin-bottom: 12px;">Key References</div>
+                        ${refHtml}
+                    </div>
+                `;
+
+                finalList.appendChild(card);
+            });
+        }
+
+        // Error handling
+        function showError(message) {
+            alert(message);
+        }
+
+        // Scroll-based progress bar highlighting
+        function initScrollBasedProgress() {
+            const allSections = [
+                document.getElementById('section-1'),
+                document.getElementById('section-2'),
+                document.getElementById('section-3'),
+                document.getElementById('section-4')
+            ].filter(section => section !== null);
+
+            function getActiveSection() {
+                const visibleSections = allSections.filter(section => !section.classList.contains('hidden'));
+                
+                if (visibleSections.length === 0) return 1;
+
+                let activeSectionIndex = 1;
+                let minDistance = Infinity;
+                const viewportTop = window.scrollY + window.innerHeight * 0.2; // Consider upper 20% of viewport
+
+                visibleSections.forEach((section) => {
+                    // Get the actual section number from the element's ID
+                    const sectionMatch = section.id.match(/section-(\d+)/);
+                    if (!sectionMatch) return;
+                    
+                    const sectionNum = parseInt(sectionMatch[1]);
+                    const rect = section.getBoundingClientRect();
+                    const sectionTop = rect.top + window.scrollY;
+                    const sectionBottom = sectionTop + rect.height;
+                    
+                    // Check if section is in the viewport's upper portion
+                    if (sectionTop <= viewportTop && sectionBottom >= viewportTop) {
+                        const distance = Math.abs(sectionTop - viewportTop);
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            activeSectionIndex = sectionNum;
+                        }
+                    } else if (sectionTop < viewportTop && sectionBottom > window.scrollY) {
+                        // Section is partially visible above the trigger point
+                        const distance = viewportTop - sectionBottom;
+                        if (distance < minDistance && distance >= -rect.height * 0.5) {
+                            minDistance = distance;
+                            activeSectionIndex = sectionNum;
+                        }
+                    }
+                });
+
+                // Fallback: find the section closest to the top of viewport
+                if (minDistance === Infinity) {
+                    visibleSections.forEach((section) => {
+                        const sectionMatch = section.id.match(/section-(\d+)/);
+                        if (!sectionMatch) return;
+                        
+                        const sectionNum = parseInt(sectionMatch[1]);
+                        const rect = section.getBoundingClientRect();
+                        const distance = Math.abs(rect.top);
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            activeSectionIndex = sectionNum;
+                        }
+                    });
+                }
+
+                return activeSectionIndex;
+            }
+
+            function updateProgressOnScroll() {
+                // Only update if we've scrolled past landing
+                if (hasScrolledPastLanding) {
+                    const activeSectionIndex = getActiveSection();
+                    updateProgressBar(activeSectionIndex);
+                    currentStep = activeSectionIndex;
+                }
+            }
+
+            // Use Intersection Observer for efficient detection
+            const observerOptions = {
+                root: null,
+                rootMargin: '-10% 0px -70% 0px',
+                threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                // Only update if we've scrolled past landing
+                if (!hasScrolledPastLanding) return;
+
+                // Find the entry with the highest intersection ratio in the trigger zone
+                let maxRatio = 0;
+                let activeIndex = 1;
+
+                entries.forEach(entry => {
+                    if (!entry.target.classList.contains('hidden')) {
+                        const sectionMatch = entry.target.id.match(/section-(\d+)/);
+                        if (sectionMatch) {
+                            const sectionNum = parseInt(sectionMatch[1]);
+                            if (entry.intersectionRatio > maxRatio) {
+                                maxRatio = entry.intersectionRatio;
+                                activeIndex = sectionNum;
+                            }
+                        }
+                    }
+                });
+
+                if (maxRatio > 0) {
+                    updateProgressBar(activeIndex);
+                    currentStep = activeIndex;
+                }
+            }, observerOptions);
+
+            // Observe all sections
+            allSections.forEach(section => {
+                if (section) {
+                    observer.observe(section);
+                }
+            });
+
+            // Also handle scroll events for more responsive updates
+            let scrollTimeout;
+            let isScrolling = false;
+            window.addEventListener('scroll', () => {
+                if (!isScrolling && hasScrolledPastLanding) {
+                    isScrolling = true;
+                    updateProgressOnScroll();
+                }
+                
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(() => {
+                    isScrolling = false;
+                    updateProgressOnScroll();
+                }, 100);
+            }, { passive: true });
+
+            // Initial update
+            updateProgressOnScroll();
+        }
+
+        // Initialize
+        updateProgressBar(1);
+        initLandingScroll();
+
+        // Initialize scroll-based progress highlighting when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initScrollBasedProgress);
+        } else {
+            initScrollBasedProgress();
+        }
+    </script>
+</body>
+</html>
+
