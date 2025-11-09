@@ -28,12 +28,17 @@ class ReaderAgent:
         # Step 1: Extract concepts and analyze paper
         extraction = self._extract_concepts(paper_text)
 
-        # Step 2: Generate research ideas based on extraction and topics
+        # Step 2: Match user topics with paper content
+        matched_user_topics = self._match_user_topics(paper_text, extraction, topics)
+
+        # Step 3: Generate research ideas based on extraction and topics
         ideas = self._generate_ideas(paper_text, extraction, topics)
 
         return {
-            'summary': extraction.get('summary', ''),
+            'summary': extraction.get('summary', []),
+            'methodology': extraction.get('methodology', []),
             'concepts': extraction.get('concepts', []),
+            'matched_user_topics': matched_user_topics,
             'findings': extraction.get('findings', []),
             'limitations': extraction.get('limitations', []),
             'datasets': extraction.get('datasets', []),
@@ -54,17 +59,22 @@ Paper text:
 {paper_text[:15000]}
 
 Please extract and return the following in JSON format:
-1. summary: A 3-4 sentence summary of the paper's key contributions
-2. concepts: List of 10-15 key concepts, terms, or methodologies (as strings)
-3. findings: List of 3-5 main findings or results (as strings)
-4. limitations: List of limitations mentioned by authors (as strings)
-5. datasets: List of datasets mentioned in the paper (as strings)
-6. future_work: List of future work suggestions mentioned by authors (as strings)
+1. summary: Array of 3-4 bullet points summarizing the paper's key contributions (as array of strings)
+2. methodology: Array of 2-4 bullet points describing the methods/techniques used (as array of strings)
+3. concepts: List of EXACTLY 5-7 MOST IMPORTANT key concepts, ordered by importance (most important first)
+   - The first concept should be the CORE/MAIN concept or methodology of the paper
+   - Following concepts should be supporting concepts, techniques, or domains
+   - Keep concepts concise (2-4 words each)
+4. findings: List of 3-5 main findings or results (as strings)
+5. limitations: List of limitations mentioned by authors (as strings)
+6. datasets: List of datasets mentioned in the paper (as strings)
+7. future_work: List of future work suggestions mentioned by authors (as strings)
 
 Return ONLY valid JSON with these fields. Example format:
 {{
-  "summary": "This paper presents...",
-  "concepts": ["neural networks", "attention mechanism", ...],
+  "summary": ["This paper presents a novel transformer architecture for NLP tasks", "Achieves state-of-the-art results on machine translation benchmarks", "Introduces self-attention mechanism to replace recurrent layers"],
+  "methodology": ["Uses multi-head attention mechanism with 8 parallel attention layers", "Trained on WMT 2014 English-German dataset with 4.5M sentence pairs", "Applied layer normalization and residual connections"],
+  "concepts": ["transformer architecture", "attention mechanism", "natural language processing", "self-attention", "encoder-decoder"],
   "findings": ["The model achieves...", ...],
   "limitations": ["Limited to...", ...],
   "datasets": ["ImageNet", ...],
@@ -88,13 +98,49 @@ Return ONLY valid JSON with these fields. Example format:
         except Exception as e:
             print(f"Error in concept extraction: {e}")
             return {
-                'summary': '',
+                'summary': [],
+                'methodology': [],
                 'concepts': [],
                 'findings': [],
                 'limitations': [],
                 'datasets': [],
                 'future_work': []
             }
+
+    def _match_user_topics(self, paper_text, extraction, topics):
+        """
+        Match user-selected topics with paper content to find relevant interests
+
+        Args:
+            paper_text: Full text of the research paper
+            extraction: Extracted information from the paper
+            topics: List of user-selected topic strings
+
+        Returns:
+            List of user topics that are relevant to the paper
+        """
+        if not topics:
+            return []
+
+        # Combine paper summary and concepts for matching context
+        paper_context = " ".join(extraction.get('summary', []))
+        paper_concepts = " ".join(extraction.get('concepts', []))
+        combined_context = f"{paper_context} {paper_concepts}".lower()
+
+        matched_topics = []
+
+        for topic in topics:
+            topic_lower = topic.lower()
+            topic_words = topic_lower.split()
+
+            # Check if topic or its words appear in paper context
+            if topic_lower in combined_context:
+                matched_topics.append(topic)
+            elif any(word in combined_context for word in topic_words if len(word) > 3):
+                matched_topics.append(topic)
+
+        # Limit to top 5 matched topics
+        return matched_topics[:5]
 
     def _generate_ideas(self, paper_text, extraction, topics):
         """

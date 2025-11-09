@@ -53,6 +53,12 @@ def test_ui():
     return send_from_directory('.', 'test.html')
 
 
+@app.route('/ui_iterations/<path:filename>')
+def serve_ui_iterations(filename):
+    """Serve UI iteration files"""
+    return send_from_directory('ui_iterations', filename)
+
+
 # ============================================================================
 # User Profile Endpoints
 # ============================================================================
@@ -349,8 +355,10 @@ def analyze_paper_read():
             'job_id': job_id,
             'status': 'ideas_ready',
             'message': 'Initial ideas generated. Please select 3 ideas to research further.',
-            'summary': reader_results.get('summary', ''),
+            'summary': reader_results.get('summary', []),
+            'methodology': reader_results.get('methodology', []),
             'concepts': reader_results.get('concepts', []),
+            'matched_user_topics': reader_results.get('matched_user_topics', []),
             'ideas': reader_results.get('ideas', [])
         }), 200
 
@@ -417,8 +425,24 @@ def analyze_paper_search():
         db.commit()
 
         # Step 3: Searcher Agent (Deep research on selected ideas only)
+        print(f"\n{'='*60}")
+        print(f"STARTING SEARCHER AGENT")
+        print(f"Job ID: {job_id}")
+        print(f"Selected ideas count: {len(selected_ideas)}")
+        print(f"Topics: {analysis.selected_topics}")
+        print(f"{'='*60}\n")
+
         searcher = SearcherAgent()
         final_results = searcher.research_ideas(selected_ideas, analysis.selected_topics)
+
+        print(f"\n{'='*60}")
+        print(f"SEARCHER AGENT COMPLETED")
+        print(f"Results: {final_results.keys() if final_results else 'None'}")
+        if final_results and 'top_ideas' in final_results:
+            for i, idea in enumerate(final_results['top_ideas']):
+                papers_count = len(idea.get('papers', []))
+                print(f"  Idea {i+1}: {idea.get('idea', {}).get('title', 'N/A')[:50]} - {papers_count} papers")
+        print(f"{'='*60}\n")
 
         # Store searcher output
         analysis.searcher_output = final_results
@@ -553,15 +577,37 @@ def get_results(job_id):
         # Get paper info
         paper = db.query(Paper).filter_by(id=analysis.paper_id).first()
 
-        # Get top ideas from searcher_output (already stored)
-        top_ideas = analysis.searcher_output.get('top_ideas', []) if analysis.searcher_output else []
+        # Get top ideas from searcher_output and flatten the structure to match /api/analyze/search
+        raw_ideas = analysis.searcher_output.get('top_ideas', []) if analysis.searcher_output else []
+
+        flattened_ideas = []
+        for idea_data in raw_ideas:
+            # Extract nested idea fields
+            idea = idea_data.get('idea', {})
+            papers = idea_data.get('papers', [])
+
+            # Flatten the structure
+            flattened_idea = {
+                'title': idea.get('title', ''),
+                'description': idea.get('description', ''),
+                'rationale': idea.get('rationale', ''),
+                'novelty_score': round(idea_data.get('novelty_assessment', {}).get('novelty_score', 0), 1),
+                'doability_score': round(idea_data.get('doability_assessment', {}).get('doability_score', 0), 1),
+                'topic_match_score': round(idea_data.get('topic_match_score', 0), 1),
+                'composite_score': round(idea_data.get('composite_score', 0), 1),
+                'novelty_assessment': idea_data.get('novelty_assessment', {}),
+                'doability_assessment': idea_data.get('doability_assessment', {}),
+                'literature_synthesis': idea_data.get('literature_synthesis', {}),
+                'references': papers[:8]  # Include top 8 papers as references
+            }
+            flattened_ideas.append(flattened_idea)
 
         return jsonify({
             'job_id': job_id,
             'filename': paper.pdf_filename if paper else '',
             'paper_summary': analysis.reader_output.get('summary', '') if analysis.reader_output else '',
             'concepts': analysis.reader_output.get('concepts', []) if analysis.reader_output else [],
-            'ideas': top_ideas
+            'ideas': flattened_ideas
         }), 200
 
     finally:

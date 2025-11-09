@@ -306,13 +306,16 @@
         .topic-badge .checkbox-icon {
             width: 16px;
             height: 16px;
+            min-height: 16px;
             border: 2px solid #8B9D83;
             border-radius: 3px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 10px;
+            line-height: 16px;
             transition: all 0.2s ease;
+            flex-shrink: 0;
         }
 
         .topic-badge.selected .checkbox-icon {
@@ -470,6 +473,119 @@
         .reference-item a:hover div:first-child {
             color: #8B9D83 !important;
         }
+
+        /* Mind Map Styles */
+        .mind-map-container {
+            width: 100%;
+            background: #FAFBFA;
+            border-radius: 8px;
+            padding: 40px 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 32px;
+        }
+
+        .mind-map-center {
+            background: #8B9D83;
+            color: white;
+            padding: 24px 40px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 18px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(139, 157, 131, 0.3);
+            max-width: 400px;
+        }
+
+        .mind-map-branches {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .mind-map-node {
+            background: white;
+            border: 2px solid #8B9D83;
+            color: #111827;
+            padding: 16px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: all 0.2s ease;
+            cursor: default;
+        }
+
+        .mind-map-node:hover {
+            background: #F3F4F6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 157, 131, 0.2);
+        }
+
+        .mind-map-node-user-topic {
+            background: #E8EDE7;
+            border: 2px solid #6d7d68;
+        }
+
+        .mind-map-node-user-topic:hover {
+            background: #dce2da;
+        }
+
+        .mind-map-legend {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: #6B7280;
+        }
+
+        .mind-map-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mind-map-legend-box {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            border: 2px solid #8B9D83;
+        }
+
+        .mind-map-legend-box.paper {
+            background: white;
+        }
+
+        .mind-map-legend-box.user {
+            background: #E8EDE7;
+            border-color: #6d7d68;
+        }
+
+        .concept-source-badge {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-top: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-paper {
+            background: #F3F4F6;
+            color: #6B7280;
+        }
+
+        .badge-user {
+            background: #6d7d68;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -602,11 +718,16 @@
 
             <!-- Step 3: Quick Read Results (Hidden initially) -->
             <section id="section-3" class="section hidden">
-                <h2>Quick Read Results</h2>
+                <h2>Paper Review</h2>
 
                 <div style="margin-bottom: 24px;">
-                    <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 12px;">Paper Summary</h3>
+                    <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 12px;">Summary</h3>
                     <div id="paper-summary" class="card-result text-sm"></div>
+                </div>
+
+                <div style="margin-bottom: 24px;">
+                    <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 12px;">Methodology</h3>
+                    <div id="paper-methodology" class="card-result text-sm"></div>
                 </div>
 
                 <div style="margin-bottom: 24px;">
@@ -835,7 +956,7 @@
             if (selectedTopics.has(topic)) {
                 selectedTopics.delete(topic);
                 badgeElement.classList.remove('selected');
-                badgeElement.querySelector('.checkbox-icon').textContent = '';
+                badgeElement.querySelector('.checkbox-icon').innerHTML = '&nbsp;';
             } else {
                 selectedTopics.add(topic);
                 badgeElement.classList.add('selected');
@@ -894,7 +1015,7 @@
             const uploadBtn = document.getElementById('upload-btn');
             const originalUploadBtnText = uploadBtn.textContent;
             uploadBtn.disabled = true;
-            uploadBtn.innerHTML = '<span class="loading"></span> <span style="margin-left: 8px;">Uploading & Analyzing (This may take up to 2 minutes)</span>';
+            uploadBtn.innerHTML = '<span class="loading"></span> <span style="margin-left: 8px;">Analyzing (This may take up to 2 minutes)</span>';
 
             try {
                 // Upload PDF
@@ -947,53 +1068,101 @@
             }
         }
 
+        // Create Mind Map for Concepts
+        function createMindMap(container, concepts, matchedUserTopics = []) {
+            if (concepts.length === 0 && matchedUserTopics.length === 0) return;
+
+            // Create mind map container
+            const mapContainer = document.createElement('div');
+            mapContainer.className = 'mind-map-container';
+
+            // Row 1: Core Topic (first concept)
+            if (concepts.length > 0) {
+                const coreConcept = concepts[0];
+                const centerNode = document.createElement('div');
+                centerNode.className = 'mind-map-center';
+                centerNode.textContent = capitalizeWords(coreConcept);
+                mapContainer.appendChild(centerNode);
+            }
+
+            // Row 2: Paper Concepts (supporting concepts)
+            const supportingConcepts = concepts.slice(1);
+            if (supportingConcepts.length > 0) {
+                const branchesDiv = document.createElement('div');
+                branchesDiv.className = 'mind-map-branches';
+
+                supportingConcepts.forEach(concept => {
+                    const node = document.createElement('div');
+                    node.className = 'mind-map-node';
+                    node.textContent = capitalizeWords(concept);
+                    branchesDiv.appendChild(node);
+                });
+
+                mapContainer.appendChild(branchesDiv);
+            }
+
+            // Row 3: Topics You Might Be Interested In (matched user topics)
+            if (matchedUserTopics.length > 0) {
+                const userTopicsHeading = document.createElement('h4');
+                userTopicsHeading.style.cssText = 'font-size: 14px; font-weight: 600; color: #6B7280; margin: 24px 0 12px 0; text-align: center;';
+                userTopicsHeading.textContent = 'Topics You Might Be Interested In';
+                mapContainer.appendChild(userTopicsHeading);
+
+                const userTopicsDiv = document.createElement('div');
+                userTopicsDiv.className = 'mind-map-branches';
+
+                matchedUserTopics.forEach(topic => {
+                    const node = document.createElement('div');
+                    node.className = 'mind-map-node mind-map-node-user-topic';
+                    node.textContent = capitalizeWords(topic);
+                    userTopicsDiv.appendChild(node);
+                });
+
+                mapContainer.appendChild(userTopicsDiv);
+            }
+
+            container.appendChild(mapContainer);
+        }
+
         // Display Quick Read Results
         function displayQuickReadResults(data) {
-            // Summary
-            document.getElementById('paper-summary').textContent = data.summary || 'No summary available';
+            console.log('=== DISPLAY QUICK READ RESULTS ===');
+            console.log('Summary:', data.summary);
+            console.log('Methodology:', data.methodology);
+            console.log('Matched User Topics:', data.matched_user_topics);
+            console.log('===================================');
 
-            // Concepts - structured display
+            // Summary - display as bullet points with dash prefix
+            const summaryDiv = document.getElementById('paper-summary');
+            const summaryItems = data.summary || [];
+            if (summaryItems.length > 0) {
+                summaryDiv.innerHTML = summaryItems.map(item =>
+                    `<div style="margin-bottom: 8px;">– ${item}</div>`
+                ).join('');
+            } else {
+                summaryDiv.textContent = 'No summary available';
+            }
+
+            // Methodology - display as bullet points with dash prefix
+            const methodologyDiv = document.getElementById('paper-methodology');
+            const methodologyItems = data.methodology || [];
+            if (methodologyItems.length > 0) {
+                methodologyDiv.innerHTML = methodologyItems.map(item =>
+                    `<div style="margin-bottom: 8px;">– ${item}</div>`
+                ).join('');
+            } else {
+                methodologyDiv.textContent = 'No methodology information available';
+            }
+
+            // Concepts - mind map display with user topics
             const conceptsList = document.getElementById('concepts-list');
             conceptsList.innerHTML = '';
 
             const concepts = data.concepts || [];
-            if (concepts.length > 0) {
-                // Create a card-based structure
-                const conceptCard = document.createElement('div');
-                conceptCard.className = 'card-result';
-                conceptCard.style.padding = '16px';
+            const matchedUserTopics = data.matched_user_topics || [];
 
-                // Group concepts (first half as "Core Concepts", second half as "Related Topics")
-                const midPoint = Math.ceil(concepts.length / 2);
-                const coreConcepts = concepts.slice(0, midPoint);
-                const relatedTopics = concepts.slice(midPoint);
-
-                let html = '';
-
-                // Core Concepts section
-                if (coreConcepts.length > 0) {
-                    html += '<div style="margin-bottom: 16px;">';
-                    html += '<div style="font-weight: 600; font-size: 14px; color: #6B7280; margin-bottom: 8px;">Core Concepts</div>';
-                    html += '<div>';
-                    coreConcepts.forEach(concept => {
-                        html += `<span class="badge" style="background: #e3e7e2; border-color: #8B9D83;">${capitalizeWords(concept)}</span>`;
-                    });
-                    html += '</div></div>';
-                }
-
-                // Related Topics section
-                if (relatedTopics.length > 0) {
-                    html += '<div>';
-                    html += '<div style="font-weight: 600; font-size: 14px; color: #6B7280; margin-bottom: 8px;">Related Topics</div>';
-                    html += '<div>';
-                    relatedTopics.forEach(concept => {
-                        html += `<span class="badge" style="background: #F9FAFB; border-color: #D1D5DB;">${capitalizeWords(concept)}</span>`;
-                    });
-                    html += '</div></div>';
-                }
-
-                conceptCard.innerHTML = html;
-                conceptsList.appendChild(conceptCard);
+            if (concepts.length > 0 || matchedUserTopics.length > 0) {
+                createMindMap(conceptsList, concepts, matchedUserTopics);
             } else {
                 conceptsList.innerHTML = '<p class="text-sm" style="color: #6B7280;">No concepts identified</p>';
             }
