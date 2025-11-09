@@ -1,26 +1,40 @@
-# Research Discovery Agent
+# Research Trailhead
 
 An agentic AI web application that helps researchers identify novel, viable research directions by intelligently analyzing uploaded papers and autonomously exploring the research landscape.
 
 ## Features
 
+### User Profile Creation
+- **Manual Profile Creation**: Describe your research interests, background, and experience
+- **Google Scholar Import**: Automatically import your research profile from Google Scholar
+  - Scrapes publication history, h-index, research interests
+  - Analyzes your research style and expertise level
+  - Extracts research areas and specific topics
+
+### Paper Analysis & Research Discovery
 - Upload research papers (PDF format)
 - AI-powered paper analysis using Google Gemini
 - Automatic literature search and review
 - **Persistent database storage** for all analyses and results
-- Generates 3 ranked, vetted research ideas with:
+- Generates ranked, vetted research ideas with:
   - Novelty assessment
   - Doability evaluation
   - Literature synthesis
   - Suggested approaches
+  - Key references with citations
 - Query past analyses and retrieve historical research ideas
+
+### User Experience
+- Modern, responsive UI with landing page
+- Interactive progress tracking
+- Step-by-step workflow guidance
+- Topic matching with user profile
 
 ## Setup
 
 ### Prerequisites
 
 - Python 3.8+
-- Google Gemini API key (get from https://makersuite.google.com/app/apikey)
 
 ### Installation
 
@@ -57,12 +71,34 @@ The app will be available at `http://localhost:5001`
 
 ## Usage
 
-1. Open `http://localhost:5001` in your browser
-2. Upload a research paper (PDF)
-3. Select research topics of interest
-4. Click "Analyze Paper"
-5. Wait 5-10 minutes for analysis
-6. Explore the top 3 research ideas generated
+### Workflow
+
+1. **Create Your Profile**
+   - Open `http://localhost:5001/ui_iterations/ui_6.html` in your browser
+   - Choose between:
+     - **Manual Description**: Enter your research interests, background, and experience level
+     - **Google Scholar URL**: Import your profile automatically from Google Scholar
+   - Click "Create Profile" to generate your research profile
+
+2. **Upload Paper**
+   - Upload a research paper (PDF format)
+   - Select research topics from your profile (auto-detected or manually added)
+   - Click "Upload & Analyze"
+
+3. **Review Paper Analysis** (1-2 minutes)
+   - Review paper summary and methodology
+   - Explore key concepts and matched topics
+   - Review generated research ideas (typically 5-10 ideas)
+
+4. **Select Ideas for Research** (Select exactly 3)
+   - Choose 3 research ideas that interest you
+   - Click "Research Selected Ideas"
+
+5. **Get Ranked Results** (2-5 minutes)
+   - Explore the top 3 ranked research ideas
+   - View novelty, doability, and topic match scores
+   - Review literature synthesis and key references
+   - Access full rationale and suggested approaches
 
 ## Project Structure
 
@@ -71,12 +107,17 @@ The app will be available at `http://localhost:5001`
 ├── app.py                      # Flask backend with API endpoints
 ├── models.py                   # SQLAlchemy database models
 ├── database.py                 # Database connection management
-├── index.html                  # Single-page UI
+├── index.html                  # Main UI
 ├── agents/
+│   ├── profiler.py            # Profiler Agent (user profile analysis)
 │   ├── reader.py              # Reader Agent (paper analysis)
 │   └── searcher.py            # Searcher Agent (literature search & ranking)
 ├── utils/
-│   └── pdf_parser.py          # PDF text extraction
+│   ├── pdf_parser.py          # PDF text extraction
+│   └── scholar_scraper.py     # Google Scholar profile scraping
+├── ui_iterations/             # UI variations
+│   ├── ui_6.html              # Latest UI with landing page and workflow
+│   └── ...                    # Other UI iterations
 ├── alembic/                    # Database migrations
 ├── uploads/                    # Uploaded PDF storage
 ├── research_discovery.db       # SQLite database (auto-created)
@@ -88,54 +129,80 @@ The app will be available at `http://localhost:5001`
 - **Backend:** Flask, Python
 - **Database:** SQLite with SQLAlchemy ORM
 - **Migrations:** Alembic
-- **AI:** Google Gemini API (gemini-2.5-flash)
-- **Literature Search:** Semantic Scholar API
+- **AI:** Google Gemini API
+  - **ProfilerAgent & ReaderAgent:** Gemini 2.5 Flash (fast analysis)
+  - **SearcherAgent:** Gemini 2.5 Pro (high-quality research synthesis)
+- **Literature Search:** arXiv API
+- **Google Scholar:** scholarly library for profile scraping
 - **Frontend:** HTML, Tailwind CSS, Vanilla JavaScript
 - **PDF Processing:** PyPDF2
 
 ## API Endpoints
 
-### Core Endpoints
-- `POST /api/upload` - Upload a research paper
-- `POST /api/analyze` - Start paper analysis
-- `GET /api/status/<job_id>` - Check analysis status
-- `GET /api/results/<job_id>` - Get final results
+### User Profile Endpoints
+- `POST /api/users/profile` - Create user profile
+  - Method: `manual` or `scholar`
+  - For manual: `description`, `experience_level`
+  - For scholar: `google_scholar_url`
+- `GET /api/users/<user_id>/profile` - Get user profile
+- `PUT /api/users/<user_id>/profile` - Update user profile
 
-### Database Query Endpoints
+### Paper Analysis Endpoints
+- `POST /api/upload` - Upload a research paper (PDF)
+- `POST /api/analyze/read` - Start paper analysis (Reader Agent)
+  - Returns: summary, methodology, concepts, research ideas
+- `POST /api/analyze/search` - Research selected ideas (Searcher Agent)
+  - Requires: `job_id`, `selected_ideas` (array of indices)
+  - Returns: top 3 ranked ideas with full details
+
+### Status & Results Endpoints
 - `GET /api/papers` - List all uploaded papers
 - `GET /api/analyses/<analysis_id>` - Get full analysis details with ideas and references
 - `GET /api/papers/<paper_id>/analyses` - Get all analyses for a specific paper
 
 ## Database
 
-The application uses SQLite for persistent storage of all analysis data. The database schema consists of 4 main tables:
+The application uses SQLite for persistent storage of all data. The database schema consists of 5 main tables:
 
 ### Tables
 
-1. **papers** - Stores uploaded research papers
+1. **users** - Stores researcher profiles
+   - User ID and timestamps
+   - Manual description or Google Scholar URL
+   - Scraped Google Scholar data (JSON)
+   - AI-generated structured profile (JSON)
+     - Expertise level, research areas, specific topics
+     - Technical skills, research style, resource access
+     - Publication count, h-index, preferences
+
+2. **papers** - Stores uploaded research papers
    - Paper metadata (title, authors, year, venue, DOI)
    - PDF file information
    - Upload timestamp
+   - Associated user ID
 
-2. **analyses** - Stores paper analysis jobs and results
+3. **analyses** - Stores paper analysis jobs and results
    - Analysis status and progress
    - Selected topics
-   - Reader agent output (summary, concepts, findings)
-   - Searcher agent output
+   - Reader agent output (summary, concepts, findings, ideas)
+   - Searcher agent output (ranked ideas, assessments)
    - Error messages
+   - Associated user and paper IDs
 
-3. **research_ideas** - Stores ranked research ideas
+4. **research_ideas** - Stores ranked research ideas
    - Idea rank (1, 2, 3)
    - Title, description, rationale
    - Scores (novelty, doability, topic match, composite)
    - Assessments (novelty, doability, literature synthesis)
+   - Associated analysis ID
 
-4. **references** - Stores literature references for each idea
+5. **references** - Stores literature references for each idea
    - Paper metadata (title, authors, year, venue)
    - Abstract and URL
    - Citation count
    - Relevance category
    - Summary
+   - Associated research idea ID
 
 ### Database Management
 
@@ -170,4 +237,33 @@ The UI follows a minimalist design with:
 - Soft gradients and refined rounded corners
 - WCAG-compliant contrast ratios
 - Mobile-friendly responsive design
+- Landing page with parallax scrolling
+- Interactive progress bar with step tracking
+- Modern UI with dark green accent colors
+
+## Additional Notes
+
+### Experience Levels
+Supported experience levels for manual profile creation:
+- Undergraduate Student
+- PhD Student
+- Academia Researcher (combines Postdoc, Assistant Professor, Associate/Full Professor)
+- Industry Researcher
+
+### Google Scholar Import
+When importing from Google Scholar:
+- The system scrapes your publication history, h-index, and research interests
+- It analyzes your research style based on publication patterns
+- It extracts research areas from your publication venues and topics
+- Processing typically takes 10-30 seconds depending on the number of publications
+
+### Performance Considerations
+- **Paper Analysis (Reader Agent)**: 1-2 minutes using Gemini 2.5 Flash
+- **Research Ideas (Searcher Agent)**: 2-5 minutes using Gemini 2.5 Pro
+- **Google Scholar Import**: 10-30 seconds (subject to rate limiting)
+- Literature search uses arXiv API with automatic rate limiting
+
+## License
+
+[Add your license here]
 
